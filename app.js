@@ -20,10 +20,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1.5. Asset Preloading
     const imagesToPreload = [];
+    const videosToPreload = [];
+    const videoBlobs = {};
+
     if (typeof gameConfig !== 'undefined') {
         if (gameConfig.roomScenes) {
             gameConfig.roomScenes.forEach(scene => {
                 if (scene.roomBg) imagesToPreload.push(scene.roomBg);
+                if (scene.videoUrl) videosToPreload.push(scene.videoUrl);
             });
         }
         if (gameConfig.backgrounds) {
@@ -37,6 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
             'https://i.postimg.cc/YqcMwq0t/room-bg3.jpg',
             'https://i.postimg.cc/TY8fXY1R/time-bg1.jpg',
             'https://i.postimg.cc/hPFcqPvD/time-bg2.jpg'
+        );
+        videosToPreload.push(
+            'videos/intro_video1.mp4',
+            'videos/intro_video2.mp4',
+            'videos/intro_video3.mp4'
         );
     }
 
@@ -64,23 +73,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function preloadVideo(url) {
+        return fetch(url)
+            .then(response => response.blob())
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob);
+                videoBlobs[url] = blobUrl;
+                console.log("Видео загружено в кэш:", url, "->", blobUrl);
+                return url;
+            })
+            .catch(err => {
+                console.error("Ошибка предзагрузки видео:", url, err);
+                return url;
+            });
+    }
+
     let loadedCount = 0;
-    const totalResources = imagesToPreload.length;
+    const totalResources = imagesToPreload.length + videosToPreload.length;
+
+    function handleResourceLoaded() {
+        loadedCount++;
+        const percent = Math.round((loadedCount / totalResources) * 100);
+        if (preloaderPercent) preloaderPercent.textContent = `${percent}%`;
+        if (preloaderBar) preloaderBar.style.width = `${percent}%`;
+
+        if (loadedCount === totalResources) {
+            setTimeout(completePreload, 400);
+        }
+    }
 
     if (totalResources === 0) {
         completePreload();
     } else {
+        // Preload Images
         imagesToPreload.forEach(url => {
-            preloadImage(url).then(() => {
-                loadedCount++;
-                const percent = Math.round((loadedCount / totalResources) * 100);
-                if (preloaderPercent) preloaderPercent.textContent = `${percent}%`;
-                if (preloaderBar) preloaderBar.style.width = `${percent}%`;
+            preloadImage(url).then(handleResourceLoaded);
+        });
 
-                if (loadedCount === totalResources) {
-                    setTimeout(completePreload, 400);
-                }
-            });
+        // Preload Videos
+        videosToPreload.forEach(url => {
+            preloadVideo(url).then(handleResourceLoaded);
         });
     }
 
@@ -146,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 roomBg.style.backgroundImage = `url('${scene.roomBg}')`;
             }
             if (introVideo && scene && scene.videoUrl) {
-                introVideo.src = scene.videoUrl;
+                introVideo.src = videoBlobs[scene.videoUrl] || scene.videoUrl;
                 introVideo.loop = true;
                 introVideo.load();
             }
@@ -162,7 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 roomBg.style.backgroundImage = `url('${fallbackBgs[roomNum]}')`;
             }
             if (introVideo) {
-                introVideo.src = `videos/intro_video${roomNum}.mp4`;
+                const fallbackUrl = `videos/intro_video${roomNum}.mp4`;
+                introVideo.src = videoBlobs[fallbackUrl] || fallbackUrl;
                 introVideo.loop = true;
                 introVideo.load();
             }
