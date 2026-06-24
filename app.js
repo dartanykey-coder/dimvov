@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let loadedCount = 0;
-    const totalResources = imagesToPreload.length + videosToPreload.length;
+    const totalResources = imagesToPreload.length;
 
     function handleResourceLoaded() {
         loadedCount++;
@@ -105,16 +105,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (totalResources === 0) {
         completePreload();
     } else {
-        // Preload Images
+        // Preload Images (blocking resources)
         imagesToPreload.forEach(url => {
             preloadImage(url).then(handleResourceLoaded);
         });
-
-        // Preload Videos
-        videosToPreload.forEach(url => {
-            preloadVideo(url).then(handleResourceLoaded);
-        });
     }
+
+    // Preload Videos in the background (non-blocking)
+    videosToPreload.forEach(url => {
+        preloadVideo(url);
+    });
 
     function completePreload() {
         if (preloader) {
