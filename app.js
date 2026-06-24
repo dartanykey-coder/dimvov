@@ -178,9 +178,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 roomBg.style.backgroundImage = `url('${scene.roomBg}')`;
             }
             if (introVideo && scene && scene.videoUrl) {
-                introVideo.src = videoBlobs[scene.videoUrl] || scene.videoUrl;
-                introVideo.loop = true;
-                introVideo.load();
+                const targetSrc = videoBlobs[scene.videoUrl] || scene.videoUrl;
+                // Convert targetSrc to absolute URL for accurate comparison
+                const absoluteTarget = targetSrc.startsWith('blob:') 
+                    ? targetSrc 
+                    : new URL(targetSrc, window.location.href).href;
+                
+                if (introVideo.src !== absoluteTarget) {
+                    introVideo.src = targetSrc;
+                    introVideo.loop = true;
+                    introVideo.load();
+                }
             }
         } else {
             // Fallback
@@ -195,9 +203,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (introVideo) {
                 const fallbackUrl = `videos/intro_video${roomNum}.mp4`;
-                introVideo.src = videoBlobs[fallbackUrl] || fallbackUrl;
-                introVideo.loop = true;
-                introVideo.load();
+                const targetSrc = videoBlobs[fallbackUrl] || fallbackUrl;
+                const absoluteTarget = targetSrc.startsWith('blob:') 
+                    ? targetSrc 
+                    : new URL(targetSrc, window.location.href).href;
+
+                if (introVideo.src !== absoluteTarget) {
+                    introVideo.src = targetSrc;
+                    introVideo.loop = true;
+                    introVideo.load();
+                }
             }
         }
     }
