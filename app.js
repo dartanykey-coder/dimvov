@@ -554,6 +554,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('album-stage').classList.add('hidden');
         cardStage.classList.remove('hidden');
         holoCard.classList.add('reveal');
+
+        // Reset gyroscope baseline for calibration relative to current holding angle
+        baseBeta = null;
+        baseGamma = null;
     }
 
     function renderAlbum() {
@@ -847,6 +851,10 @@ document.addEventListener('DOMContentLoaded', () => {
             previewCard = pulledCard;
             previewType = pulledType;
 
+            // Reset gyroscope baseline for calibration relative to current holding angle
+            baseBeta = null;
+            baseGamma = null;
+
             // Fade out white flash
             setTimeout(() => {
                 whiteFlash.classList.remove('active');
@@ -857,6 +865,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 5. 3D Card Tilt & Holographic Mask Parallax
     const layerShine = holoCard.querySelector('.layer-shine');
+
+    let baseBeta = null;
+    let baseGamma = null;
+    let isInteracting = false; // Flag to pause gyro tilt when user interacts via touch/mouse
 
     // Make sure the reveal animation doesn't permanently lock transform styles
     holoCard.addEventListener('animationend', (e) => {
@@ -869,6 +881,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Функция обработки движения (вызывается на mousemove или touchmove контейнера)
     function handleCardMotion(e, phoneContainer, cardElement) {
+        isInteracting = true; // Mark as interacting to pause gyroscope orientation updates
         const rect = phoneContainer.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
 
@@ -907,6 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Функция сброса (вызывается на mouseleave или touchend)
     function resetCardMotion(cardElement) {
+        isInteracting = false; // Resume gyroscope updates
         cardElement.style.transform = 'rotateX(0deg) rotateY(0deg)';
 
         const holoLayer = cardElement.querySelector('.layer-hologram');
@@ -920,6 +934,84 @@ document.addEventListener('DOMContentLoaded', () => {
             layerShine.style.background = `radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 60%)`;
         }
     }
+
+    // Gyroscope Device Orientation handling
+    function handleOrientation(event) {
+        // Only apply if cardStage is visible and user is not actively interacting with finger/mouse
+        if (!cardStage || cardStage.classList.contains('hidden')) {
+            return;
+        }
+        if (isInteracting) return;
+
+        let beta = event.beta;   // -180 to 180 (tilt front/back)
+        let gamma = event.gamma; // -90 to 90 (tilt left/right)
+
+        if (beta === null || gamma === null) return;
+
+        // Initialize baseline holding position
+        if (baseBeta === null) {
+            baseBeta = beta;
+            baseGamma = gamma;
+        }
+
+        // Calculate deviation from baseline angle
+        let deltaBeta = beta - baseBeta;
+        let deltaGamma = gamma - baseGamma;
+
+        // Clamp device tilt deviation to max 20 degrees
+        const maxDeviceTilt = 20;
+        deltaBeta = Math.max(-maxDeviceTilt, Math.min(maxDeviceTilt, deltaBeta));
+        deltaGamma = Math.max(-maxDeviceTilt, Math.min(maxDeviceTilt, deltaGamma));
+
+        // Map device deviation to max 15 degrees card tilt
+        const maxCardTilt = 15;
+        // Pitch (beta) controls rotateX, roll (gamma) controls rotateY
+        const rotateX = -(deltaBeta / maxDeviceTilt) * maxCardTilt; 
+        const rotateY = (deltaGamma / maxDeviceTilt) * maxCardTilt;
+
+        if (holoCard) {
+            holoCard.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+
+            // Hologram parallax coordinates
+            const moveFactor = 1.2;
+            const mx = 50 + (deltaGamma / maxDeviceTilt) * (50 * moveFactor);
+            const my = 50 + (deltaBeta / maxDeviceTilt) * (50 * moveFactor);
+            const holoLayer = holoCard.querySelector('.layer-hologram');
+            if (holoLayer) {
+                holoLayer.style.setProperty('--mx', `${mx}%`);
+                holoLayer.style.setProperty('--my', `${my}%`);
+            }
+
+            // Glass glare/shine gradient
+            const shineX = 50 + (deltaGamma / maxDeviceTilt) * 50;
+            const shineY = 50 + (deltaBeta / maxDeviceTilt) * 50;
+            const layerShine = holoCard.querySelector('.layer-shine');
+            if (layerShine) {
+                layerShine.style.background = `radial-gradient(circle at ${shineX}% ${shineY}%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 60%)`;
+            }
+        }
+    }
+
+    // Permission request for iOS 13+ and event listener registration
+    function requestOrientationPermission() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        window.removeEventListener('deviceorientation', handleOrientation);
+                        window.addEventListener('deviceorientation', handleOrientation);
+                    }
+                })
+                .catch(console.error);
+        } else {
+            window.removeEventListener('deviceorientation', handleOrientation);
+            window.addEventListener('deviceorientation', handleOrientation);
+        }
+    }
+
+    // Register orientation event listeners upon first user interaction (required by iOS browsers)
+    document.addEventListener('click', requestOrientationPermission, { once: true });
+    document.addEventListener('touchstart', requestOrientationPermission, { once: true });
 
     // Touch Event Listeners (Mobile Screens)
     cardStage.addEventListener('touchstart', (e) => {
