@@ -1,0 +1,9 @@
+.layer-hologram {
+  z-index: 2;
+  opacity: 0.5;
+  mix-blend-mode: color-dodge;
+  background: linear-gradient(175deg, #ff0000 17%, #ffff00 20%, #00ff00 40%, #00ffff 60%, #0000ff 80%, #ff00ff 83%);
+  background-size: 150% 150% !important;
+  background-position: var(--mx, 50%) var(--my, 50%) !important;
+  transition: background-position 0.05s ease-out;
+}

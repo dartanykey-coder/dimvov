@@ -1,0 +1,27 @@
+.layer-hologram.holo2 {
+  z-index: 2;
+  opacity: 0.6;
+  mix-blend-mode: color-dodge;
+
+  /* Эффект металлических складок фольги за счет пересечения радиальных градиентов и радужного спектра */
+  background:
+    radial-gradient(circle at 30% 20%, #ffffff 0%, #777777 15%, #111111 30%, #ffffff 45%, #000000 60%, #888888 75%, #ffffff 100%),
+    radial-gradient(circle at 80% 70%, #ffffff 0%, #555555 20%, #111111 40%, #ffffff 60%, #222222 80%, #ffffff 100%),
+    linear-gradient(135deg,
+      #ff0055 0%,
+      #ff9900 15%,
+      #ffff00 30%,
+      #00ff66 45%,
+      #00ffff 60%,
+      #3300ff 75%,
+      #cc00ff 90%,
+      #ff0055 100%);
+
+  background-blend-mode: hard-light, overlay;
+  background-size: 250% 250% !important;
+  background-position: var(--mx, 50%) var(--my, 50%) !important;
+  transition: background-position 0.1s ease-out;
+
+  /* Фильтры превращают серые зоны в зеркальное отражение */
+  filter: brightness(1.2) contrast(1.4);
+}

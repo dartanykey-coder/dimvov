@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Telegram Mini App - Card Game</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="style.css?v=1">
+    <!-- Google Fonts for futuristic look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&family=Outfit:wght@400;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Blocker Screen for standard web browsers -->
+    <div id="tg-blocker" class="blocker hidden">
+        <div class="blocker-content">
+            <div class="blocker-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 18C11.45 18 11 17.55 11 17C11 16.45 11.45 16 12 16C12.55 16 13 16.45 13 17C13 17.55 12.55 18 12 18ZM13 13H11V7H13V13Z" fill="var(--accent-color, #ff0055)"/>
+                </svg>
+            </div>
+            <h1>ДОСТУП ОГРАНИЧЕН</h1>
+            <p>Доступ разрешен только из Telegram-бота</p>
+        </div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div id="game-container" class="container phone-container">
+        <!-- Preloader Screen -->
+        <div id="game-preloader" class="preloader">
+            <div class="preloader-content">
+                <div class="preloader-title">ЗАВАРИВАЕМ ЧАЙ</div>
+                <div class="preloader-bar-container">
+                    <div id="preloader-bar" class="preloader-bar"></div>
+                </div>
+                <div id="preloader-percent" class="preloader-percent">0%</div>
+            </div>
+        </div>
+
+        <!-- Room Static Background -->
+        <div id="room-bg" class="room-bg"></div>
+
+        <!-- Top Header for Main Screen -->
+        <div id="main-header" class="main-header">
+            <div class="main-header-logo">ДВА СТВОЛА</div>
+            <button id="main-album-btn" class="main-album-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <span>Альбом</span>
+            </button>
+        </div>
+
+        <!-- Video Player Overlay -->
+        <video id="intro-video" class="intro-video" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
+
+        <!-- UI Layer (Start Screen) -->
+        <div id="ui-layer" class="ui-layer">
+            <div class="attempts-container">
+                <div class="attempt-circle"></div>
+                <div class="attempt-circle"></div>
+                <div class="attempt-circle"></div>
+            </div>
+            <button id="pull-btn" class="pull-btn">ТАЩИТЬ</button>
+            <div class="pull-description">Замок чемодана выдержит 3 открытия. Попытаться можно 1 раз в 2 часа.<br>Полное восстановление в 00:00 по МСК.</div>
+        </div>
+
+        <!-- Card Stage (Final Screen) -->
+        <div id="card-stage" class="card-stage hidden">
+            <!-- White glow transition overlay -->
+            <div id="white-flash" class="white-flash"></div>
+            
+            <div class="card-perspective">
+                <div id="holo-card" class="interactive-card">
+                    <!-- 1-й слой (снизу) -->
+                    <div class="card-layer layer-base"></div>
+                    <!-- 2-й слой (посередине) -->
+                    <div class="card-layer layer-hologram"></div>
+                    <!-- 3-й слой (сверху, маска) -->
+                    <div class="card-layer layer-png-overlay"></div>
+                    <!-- 4-й слой (глянцевый блик) -->
+                    <div class="card-layer layer-shine"></div>
+                    <!-- Блок метаданных карты -->
+                    <div class="card-details">
+                        <div class="rarity-badge"></div>
+                        <h2 class="card-title"></h2>
+                        <div class="card-serial"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Блок действий под картой -->
+            <div class="card-actions">
+                <p class="card-story-description"></p>
+                <div class="actions-row">
+                    <button id="toggle-version-btn" class="toggle-version-btn hidden">Показать REG</button>
+                    <button class="album-btn">В альбом</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Album Stage (Album Screen) -->
+        <div id="album-stage" class="album-stage hidden">
+            <div class="album-header">
+                <h1>Твой Альбом</h1>
+                <div class="album-counter" id="album-counter">0 / 0 Карты</div>
+            </div>
+            
+            <div class="album-grid-container">
+                <div class="album-grid" id="album-grid">
+                    <!-- Dynamic card cells go here -->
+                </div>
+            </div>
+            
+            <div class="album-footer">
+                <button id="to-main-btn" class="to-main-btn">НА ГЛАВНУЮ</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="gameConfig.js?v=2"></script>
+    <script src="cardsData.js?v=2"></script>
+    <script src="chance.js?v=2"></script>
+    <script src="app.js?v=2"></script>
+</body>
+</html>
